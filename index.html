@@ -1,553 +1,489 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="uk">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Календарь съемок</title>
+  <title>Студійний Календар</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
     :root {
-      --bg: var(--tg-theme-bg-color, #f4f6fa);
+      --bg: var(--tg-theme-bg-color, #f2f4f8);
       --card: var(--tg-theme-secondary-bg-color, #ffffff);
-      --text: var(--tg-theme-text-color, #111827);
-      --hint: var(--tg-theme-hint-color, #6b7280);
+      --text: var(--tg-theme-text-color, #0f172a);
+      --hint: var(--tg-theme-hint-color, #64748b);
       --accent: var(--tg-theme-button-color, #2563eb);
       --accent-text: var(--tg-theme-button-text-color, #ffffff);
-      --border: rgba(128, 128, 128, 0.16);
+      --border: rgba(100, 116, 139, 0.18);
       --success: #16a34a;
+      --warning: #d97706;
       --danger: #dc2626;
       --studio-bg: rgba(37, 99, 235, 0.12);
       --studio-fg: #2563eb;
-      --nofoto-bg: rgba(16, 185, 129, 0.14);
-      --nofoto-fg: #059669;
+      --fbf-bg: rgba(16, 185, 129, 0.14);
+      --fbf-fg: #059669;
+      --photoday-bg: rgba(168, 85, 247, 0.14);
+      --photoday-fg: #7e22ce;
     }
-
-    * {
-      box-sizing: border-box;
-      -webkit-tap-highlight-color: transparent;
-    }
-
-    body {
-      margin: 0;
-      padding: 14px 14px 92px;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      line-height: 1.4;
-    }
-
-    .countdown-card {
-      background: linear-gradient(135deg, #1e293b, #0f172a);
-      color: #ffffff;
-      border-radius: 18px;
-      padding: 16px;
-      margin-bottom: 14px;
-      box-shadow: 0 10px 24px rgba(15, 23, 42, 0.16);
-      position: relative;
-      overflow: hidden;
-      animation: fadeSlide 0.35s ease;
-    }
-
-    .countdown-card::after {
-      content: "";
-      position: absolute;
-      width: 140px;
-      height: 140px;
-      right: -35px;
-      top: -35px;
-      border-radius: 50%;
-      background: rgba(59, 130, 246, 0.22);
-      animation: pulseGlow 3s infinite ease-in-out;
-      pointer-events: none;
-    }
-
-    @keyframes pulseGlow {
-      0%, 100% { transform: scale(1); opacity: 0.7; }
-      50% { transform: scale(1.18); opacity: 1; }
-    }
-
-    @keyframes fadeSlide {
-      from { opacity: 0; transform: translateY(8px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    .countdown-label {
-      font-size: 12px;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      opacity: 0.78;
-      margin-bottom: 6px;
-    }
-
-    .timer-digits {
-      font-size: 28px;
-      font-weight: 800;
-      font-variant-numeric: tabular-nums;
-      letter-spacing: 0.03em;
-      margin: 4px 0 8px;
-    }
-
-    .countdown-meta {
-      font-size: 13px;
-      opacity: 0.92;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      align-items: center;
-    }
-
-    .pill {
-      display: inline-flex;
-      align-items: center;
-      padding: 3px 9px;
-      border-radius: 999px;
-      font-size: 12px;
-      font-weight: 600;
-    }
-
-    .pill-studio { background: var(--studio-bg); color: var(--studio-fg); }
-    .pill-nofoto { background: var(--nofoto-bg); color: var(--nofoto-fg); }
-    .pill-dark { background: rgba(255, 255, 255, 0.14); color: #fff; }
-
-    .card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 14px;
-      margin-bottom: 14px;
-      animation: fadeSlide 0.3s ease;
-    }
-
-    .cal-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 10px;
-    }
-
-    .cal-title {
-      font-weight: 700;
-      font-size: 16px;
-      text-transform: capitalize;
-    }
-
-    .icon-btn {
-      background: var(--bg);
-      color: var(--text);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 6px 11px;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: transform 0.12s ease;
-    }
-
-    .icon-btn:active { transform: scale(0.94); }
-
-    .weekdays, .days-grid {
-      display: grid;
-      grid-template-columns: repeat(7, 1fr);
-      gap: 4px;
-      text-align: center;
-    }
-
-    .weekdays div {
-      font-size: 11px;
-      color: var(--hint);
-      font-weight: 600;
-      padding-bottom: 4px;
-    }
-
-    .day-btn {
-      position: relative;
-      height: 40px;
-      border: none;
-      border-radius: 11px;
-      background: transparent;
-      color: var(--text);
-      font-size: 14px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: background 0.18s ease, transform 0.12s ease;
-    }
-
-    .day-btn:active { transform: scale(0.92); }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body { margin: 0; padding: 12px 12px 136px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.4; }
+    .countdown-card { background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); color: #fff; border-radius: 20px; padding: 15px; margin-bottom: 12px; box-shadow: 0 12px 24px rgba(15, 23, 42, 0.16); }
+    .countdown-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.78; }
+    .timer-digits { font-size: 27px; font-weight: 800; font-variant-numeric: tabular-nums; margin: 4px 0 8px; }
+    .countdown-meta, .badges-line { display: flex; flex-wrap: wrap; gap: 6px; font-size: 12px; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 18px; padding: 14px; margin-bottom: 12px; }
+    .cal-header { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 10px; }
+    .cal-nav { display: flex; align-items: center; gap: 6px; }
+    .cal-title { font-weight: 800; font-size: 15px; text-transform: capitalize; }
+    .icon-btn { background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 10px; padding: 6px 10px; font-size: 13px; font-weight: 700; cursor: pointer; }
+    .weekdays, .days-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; }
+    .weekdays div { font-size: 11px; color: var(--hint); font-weight: 700; padding-bottom: 4px; }
+    .day-btn { position: relative; height: 39px; border: none; border-radius: 11px; background: transparent; color: var(--text); font-size: 14px; font-weight: 600; cursor: pointer; }
     .day-btn.muted { opacity: 0.32; }
-    .day-btn.today { border: 1.5px solid var(--accent); font-weight: 700; }
-    .day-btn.selected {
-      background: var(--accent) !important;
-      color: var(--accent-text) !important;
-      font-weight: 700;
-    }
-
-    .dot {
-      position: absolute;
-      bottom: 4px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 5px;
-      height: 5px;
-      border-radius: 50%;
-      background: var(--accent);
-    }
-
+    .day-btn.today { border: 1.5px solid var(--accent); }
+    .day-btn.selected { background: var(--accent) !important; color: var(--accent-text) !important; }
+    .dot { position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); width: 5px; height: 5px; border-radius: 50%; background: var(--accent); }
+    .dot.busy { background: var(--warning); }
     .day-btn.selected .dot { background: var(--accent-text); }
-
-    .tabs {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 6px;
-      background: var(--bg);
-      padding: 4px;
-      border-radius: 12px;
-      margin-bottom: 12px;
-    }
-
-    .tab-btn {
-      border: none;
-      border-radius: 9px;
-      padding: 8px;
-      font-size: 13px;
-      font-weight: 600;
-      background: transparent;
-      color: var(--hint);
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-
-    .tab-btn.active {
-      background: var(--card);
-      color: var(--text);
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-    }
-
-    .booking-item {
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 12px;
-      margin-bottom: 10px;
-      background: var(--bg);
-      animation: fadeSlide 0.25s ease;
-    }
-
-    .booking-top {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 6px;
-    }
-
-    .booking-time {
-      font-weight: 700;
-      font-size: 15px;
-    }
-
-    .booking-price {
-      font-weight: 700;
-      color: var(--success);
-      font-size: 14px;
-    }
-
-    .booking-note {
-      font-size: 13px;
-      color: var(--hint);
-      margin-top: 6px;
-    }
-
-    .booking-actions {
-      display: flex;
-      justify-content: flex-end;
-      margin-top: 8px;
-    }
-
-    .del-btn {
-      border: none;
-      background: rgba(220, 38, 38, 0.1);
-      color: var(--danger);
-      font-size: 12px;
-      font-weight: 600;
-      padding: 5px 10px;
-      border-radius: 8px;
-      cursor: pointer;
-    }
-
-    .fab {
-      position: fixed;
-      left: 14px;
-      right: 14px;
-      bottom: 14px;
-      background: var(--accent);
-      color: var(--accent-text);
-      border: none;
-      border-radius: 15px;
-      padding: 14px;
-      font-size: 15px;
-      font-weight: 700;
-      cursor: pointer;
-      box-shadow: 0 8px 20px rgba(37, 99, 235, 0.28);
-      transition: transform 0.15s ease;
-      z-index: 20;
-    }
-
-    .fab:active { transform: scale(0.98); }
-
-    .modal-backdrop {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.48);
-      display: none;
-      align-items: flex-end;
-      z-index: 50;
-      backdrop-filter: blur(2px);
-    }
-
+    .list-top-bar { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+    .back-btn { border: 1px solid var(--border); background: var(--bg); color: var(--text); border-radius: 9px; padding: 5px 10px; font-size: 12px; font-weight: 800; cursor: pointer; }
+    .toolbar { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+    .tabs-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; background: var(--bg); padding: 4px; border-radius: 12px; }
+    .tab-btn { border: none; border-radius: 9px; padding: 8px 6px; font-size: 12px; font-weight: 700; background: transparent; color: var(--hint); cursor: pointer; }
+    .tab-btn.active { background: var(--card); color: var(--text); box-shadow: 0 2px 6px rgba(0,0,0,0.06); }
+    .filter-row { display: flex; flex-wrap: wrap; gap: 6px; }
+    .search-input, .field input { width: 100%; padding: 10px 12px; border-radius: 11px; border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 13px; }
+    .pill { display: inline-flex; align-items: center; padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+    .pill-btn { cursor: pointer; border: none; }
+    .pill-studio { background: var(--studio-bg); color: var(--studio-fg); }
+    .pill-fbf { background: var(--fbf-bg); color: var(--fbf-fg); }
+    .pill-photoday { background: var(--photoday-bg); color: var(--photoday-fg); }
+    .pill-dark { background: rgba(255,255,255,0.15); color: #fff; }
+    .pill-paid { background: rgba(22, 163, 74, 0.14); color: var(--success); }
+    .pill-prepaid { background: rgba(217, 119, 6, 0.15); color: var(--warning); }
+    .pill-unpaid { background: rgba(220, 38, 38, 0.13); color: var(--danger); }
+    .booking-item { border: 1px solid var(--border); border-radius: 14px; padding: 12px; margin-bottom: 10px; background: var(--bg); }
+    .booking-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 6px; }
+    .booking-time { font-weight: 800; font-size: 15px; }
+    .booking-price { font-weight: 800; color: var(--success); font-size: 14px; }
+    .booking-meta-txt { font-size: 13px; margin-top: 4px; }
+    .booking-note { font-size: 12px; color: var(--hint); margin-top: 4px; }
+    .client-link { color: var(--accent); font-weight: 700; text-decoration: none; }
+    .booking-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px; }
+    .edit-btn { border: 1px solid var(--border); background: var(--card); color: var(--text); font-size: 12px; font-weight: 700; padding: 5px 10px; border-radius: 8px; cursor: pointer; }
+    .del-btn { border: none; background: rgba(220, 38, 38, 0.12); color: var(--danger); font-size: 12px; font-weight: 700; padding: 5px 10px; border-radius: 8px; cursor: pointer; }
+    .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 10px; }
+    .stat-box { background: var(--bg); border: 1px solid var(--border); border-radius: 13px; padding: 10px; }
+    .stat-title { font-size: 11px; color: var(--hint); font-weight: 700; }
+    .stat-val { font-size: 15px; font-weight: 800; margin-top: 2px; }
+    .stat-sub { font-size: 11px; color: var(--hint); margin-top: 2px; }
+    .bottom-dock { position: fixed; left: 0; right: 0; bottom: 0; background: var(--card); border-top: 1px solid var(--border); padding: 8px 12px 12px; z-index: 30; }
+    .bottom-nav { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 8px; }
+    .nav-btn { border: 1px solid var(--border); background: var(--bg); color: var(--text); border-radius: 11px; padding: 7px 4px; font-size: 11px; font-weight: 800; cursor: pointer; }
+    .nav-btn.active { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+    .fab { width: 100%; background: var(--accent); color: var(--accent-text); border: none; border-radius: 14px; padding: 12px; font-size: 15px; font-weight: 800; cursor: pointer; }
+    .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.52); display: none; align-items: flex-end; z-index: 50; }
     .modal-backdrop.open { display: flex; }
-
-    .sheet {
-      width: 100%;
-      max-height: 90vh;
-      overflow-y: auto;
-      background: var(--card);
-      border-radius: 22px 22px 0 0;
-      padding: 18px 16px 26px;
-      animation: sheetUp 0.28s cubic-bezier(0.22, 1, 0.36, 1);
-    }
-
-    @keyframes sheetUp {
-      from { transform: translateY(100%); }
-      to { transform: translateY(0); }
-    }
-
+    .sheet { width: 100%; max-height: 92vh; overflow-y: auto; background: var(--card); border-radius: 22px 22px 0 0; padding: 18px 16px 28px; }
     .field { margin-bottom: 12px; }
-    .field label {
-      display: block;
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--hint);
-      margin-bottom: 5px;
-    }
-
-    .field input, .field select {
-      width: 100%;
-      padding: 11px 12px;
-      border-radius: 11px;
-      border: 1px solid var(--border);
-      background: var(--bg);
-      color: var(--text);
-      font-size: 14px;
-    }
-
-    .chip-group {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-    }
-
-    .chip {
-      border: 1px solid var(--border);
-      background: var(--bg);
-      color: var(--text);
-      padding: 7px 11px;
-      border-radius: 10px;
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-    }
-
-    .chip.active {
-      background: var(--accent);
-      color: var(--accent-text);
-      border-color: var(--accent);
-    }
-
-    .row-2 {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-    }
-
-    .submit-btn {
-      width: 100%;
-      padding: 13px;
-      border: none;
-      border-radius: 12px;
-      background: var(--accent);
-      color: var(--accent-text);
-      font-size: 15px;
-      font-weight: 700;
-      cursor: pointer;
-    }
-
-    .toast {
-      position: fixed;
-      top: 14px;
-      left: 14px;
-      right: 14px;
-      padding: 12px 14px;
-      border-radius: 12px;
-      background: #111827;
-      color: #fff;
-      font-size: 13px;
-      font-weight: 600;
-      display: none;
-      z-index: 100;
-      text-align: center;
-    }
-
-    .toast.show { display: block; animation: fadeSlide 0.2s ease; }
+    .field label { display: block; font-size: 12px; font-weight: 700; color: var(--hint); margin-bottom: 5px; }
+    .chip-group { display: flex; flex-wrap: wrap; gap: 6px; }
+    .chip { border: 1px solid var(--border); background: var(--bg); color: var(--text); padding: 7px 10px; border-radius: 10px; font-size: 12px; font-weight: 700; cursor: pointer; }
+    .chip.active { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+    .hidden-panel { display: none; margin-top: 8px; padding: 10px; border-radius: 12px; background: var(--bg); border: 1px dashed var(--border); }
+    .hidden-panel.open { display: block; }
+    .conflict-box { display: none; background: rgba(217, 119, 6, 0.14); border: 1px solid rgba(217, 119, 6, 0.45); color: var(--warning); border-radius: 12px; padding: 10px 12px; font-size: 12px; font-weight: 700; margin-bottom: 12px; }
+    .conflict-box.show { display: block; }
+    .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .submit-btn { width: 100%; padding: 13px; border: none; border-radius: 12px; background: var(--accent); color: var(--accent-text); font-size: 15px; font-weight: 800; cursor: pointer; }
+    .toast { position: fixed; top: 12px; left: 12px; right: 12px; padding: 12px 14px; border-radius: 12px; background: #0f172a; color: #fff; font-size: 13px; font-weight: 700; display: none; z-index: 100; text-align: center; }
+    .toast.show { display: block; }
   </style>
 </head>
 <body>
   <div id="toast" class="toast"></div>
 
-  <div class="countdown-card">
-    <div class="countdown-label" id="nextLabel">Ближайшая съемка</div>
-    <div class="timer-digits" id="timerDisplay">--:--:--</div>
-    <div class="countdown-meta" id="nextMeta">Загрузка расписания...</div>
+  <div id="viewSchedule">
+    <div class="countdown-card">
+      <div class="countdown-label" id="nextLabel">Найближча зйомка</div>
+      <div class="timer-digits" id="timerDisplay">--:--:--</div>
+      <div class="countdown-meta" id="nextMeta">Завантаження розкладу...</div>
+    </div>
+
+    <div class="card">
+      <div class="cal-header">
+        <div class="cal-title" id="monthTitle"></div>
+        <div class="cal-nav">
+          <button class="icon-btn" id="todayBtn">Сьогодні</button>
+          <button class="icon-btn" id="prevMonth">‹</button>
+          <button class="icon-btn" id="nextMonth">›</button>
+        </div>
+      </div>
+      <div class="weekdays"><div>Пн</div><div>Вт</div><div>Ср</div><div>Чт</div><div>Пт</div><div>Сб</div><div>Нд</div></div>
+      <div class="days-grid" id="daysGrid"></div>
+    </div>
+
+    <div class="card">
+      <div class="list-top-bar">
+        <div id="listTitle" style="font-weight:800; font-size:14px;"></div>
+        <button type="button" class="back-btn" id="backTabBtn">↩️ Назад</button>
+      </div>
+      <div class="toolbar">
+        <div class="tabs-3">
+          <button class="tab-btn active" id="tabDay">День</button>
+          <button class="tab-btn" id="tabWeek">Тиждень</button>
+          <button class="tab-btn" id="tabMonth">Місяць</button>
+        </div>
+        <div class="filter-row" id="typeFilters">
+          <button type="button" class="chip active" data-filter="all">Усі</button>
+          <button type="button" class="chip" data-filter="Оренда студії">Оренда студії</button>
+          <button type="button" class="chip" data-filter="ФБФ">ФБФ</button>
+          <button type="button" class="chip" data-filter="Фотодень">Фотодень</button>
+        </div>
+        <input type="text" class="search-input" id="searchInput" placeholder="Пошук: клієнт, фотограф, формат, нотатка..." />
+      </div>
+      <div id="bookingsContainer"></div>
+    </div>
   </div>
 
-  <div class="card">
-    <div class="cal-header">
-      <button class="icon-btn" id="prevMonth">‹</button>
-      <div class="cal-title" id="monthTitle"></div>
-      <button class="icon-btn" id="nextMonth">›</button>
+  <div id="viewFinance" style="display:none;">
+    <div class="card">
+      <div class="list-top-bar">
+        <div style="font-weight:800; font-size:16px;">💰 Фінансова аналітика (грн)</div>
+        <button type="button" class="back-btn" id="backFromFinanceBtn">↩️ Назад</button>
+      </div>
+      <div class="row-2" style="margin-bottom:10px;">
+        <div class="field" style="margin-bottom:0;"><label>Період: Від</label><input type="date" id="dateFrom" /></div>
+        <div class="field" style="margin-bottom:0;"><label>Період: До</label><input type="date" id="dateTo" /></div>
+      </div>
+      <div class="filter-row" style="margin-bottom:10px;">
+        <button type="button" class="chip" id="presetMonthBtn">Поточний місяць</button>
+        <button type="button" class="chip" id="presetWeekBtn">Найближчі 7 днів</button>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-box"><div class="stat-title">Загальна сума</div><div class="stat-val" id="finTotal">0 грн</div><div class="stat-sub" id="finCount">0 зйомок • 0 год</div></div>
+        <div class="stat-box"><div class="stat-title">Фактично отримано</div><div class="stat-val" id="finReceived">0 грн</div><div class="stat-sub" id="finPrepaid">Передплат: 0 грн</div></div>
+        <div class="stat-box"><div class="stat-title">Оренда студії</div><div class="stat-val" id="finRent">0 грн</div><div class="stat-sub">30хв 400 • 1г 800 • 1.5г 1200 • 2г 1600</div></div>
+        <div class="stat-box"><div class="stat-title">ФБФ / Фотодень</div><div class="stat-val" id="finFbfPhotoday">0 грн</div><div class="stat-sub" id="finBreak">ФБФ: 0 • Фотодень: 0</div></div>
+      </div>
     </div>
-    <div class="weekdays">
-      <div>Пн</div><div>Вт</div><div>Ср</div><div>Чт</div><div>Пт</div><div>Сб</div><div>Вс</div>
-    </div>
-    <div class="days-grid" id="daysGrid"></div>
   </div>
 
-  <div class="card">
-    <div class="tabs">
-      <button class="tab-btn active" id="tabDay">На выбранный день</button>
-      <button class="tab-btn" id="tabWeek">Вся неделя</button>
+  <div class="bottom-dock">
+    <div class="bottom-nav">
+      <button type="button" class="nav-btn active" id="navCal">📅 Календар</button>
+      <button type="button" class="nav-btn" id="navToday">⚡ Сьогодні</button>
+      <button type="button" class="nav-btn" id="navFin">💰 Фінанси</button>
+      <button type="button" class="nav-btn" id="navBack">↩️ Назад</button>
     </div>
-    <div id="listTitle" style="font-weight:700; margin-bottom:10px; font-size:14px;"></div>
-    <div id="bookingsContainer"></div>
+    <button class="fab" id="openModalBtn">+ Записати зйомку</button>
   </div>
-
-  <button class="fab" id="openModalBtn">+ Записать съемку</button>
 
   <div class="modal-backdrop" id="modalBackdrop">
     <div class="sheet">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
-        <div style="font-size:17px; font-weight:800;">Новая запись</div>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <div style="font-size:17px; font-weight:800;" id="modalTitle">Нова зйомка</div>
         <button class="icon-btn" id="closeModalBtn">✕</button>
       </div>
+      <div class="conflict-box" id="conflictBox"></div>
 
       <form id="bookingForm">
+        <input type="hidden" id="editId" value="" />
+
         <div class="field">
-          <label>Формат съемки</label>
+          <label>Формат зйомки</label>
           <div class="chip-group" id="typeChips">
-            <button type="button" class="chip active" data-val="Аренда студии">Аренда студии</button>
-            <button type="button" class="chip" data-val="Без фотографа">Без фотографа</button>
+            <button type="button" class="chip active" data-val="Оренда студії">Оренда студії</button>
+            <button type="button" class="chip" data-val="ФБФ">ФБФ (без фотографа)</button>
+            <button type="button" class="chip" data-val="Фотодень">+ Фотодень</button>
           </div>
         </div>
 
         <div class="row-2">
+          <div class="field"><label>Дата</label><input type="date" id="inpDate" required /></div>
           <div class="field">
-            <label>Дата</label>
-            <input type="date" id="inpDate" required />
-          </div>
-          <div class="field">
-            <label>Время начала</label>
-            <input type="time" id="inpTime" value="12:00" required />
+            <label>Час початку (або введіть вручну)</label>
+            <input type="time" id="inpTime" value="10:00" required />
           </div>
         </div>
 
         <div class="field">
-          <label>Продолжительность (часов)</label>
-          <div class="chip-group" id="durChips">
-            <button type="button" class="chip" data-val="0.5">0.5 ч</button>
-            <button type="button" class="chip active" data-val="1">1 ч</button>
-            <button type="button" class="chip" data-val="1.5">1.5 ч</button>
-            <button type="button" class="chip" data-val="2">2 ч</button>
-            <button type="button" class="chip" data-val="3">3 ч</button>
-            <button type="button" class="chip" data-val="4">4 ч</button>
+          <label>Швидкий вибір години</label>
+          <div class="chip-group" id="timeChips">
+            <button type="button" class="chip" data-val="09:00">09:00</button>
+            <button type="button" class="chip active" data-val="10:00">10:00</button>
+            <button type="button" class="chip" data-val="12:00">12:00</button>
+            <button type="button" class="chip" data-val="14:00">14:00</button>
+            <button type="button" class="chip" data-val="16:00">16:00</button>
+            <button type="button" class="chip" data-val="18:00">18:00</button>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Тривалість зйомки</label>
+          <div class="chip-group" id="durChips"></div>
+          <div id="customDurWrap" style="display:none; margin-top:8px;">
+            <input type="number" id="inpCustomDur" placeholder="Введіть години вручну, наприклад 2.5" min="0.25" max="24" step="0.25" />
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Фотограф (або введіть ім'я вручну)</label>
+          <div class="chip-group" id="photoChips" style="margin-bottom:8px;">
+            <button type="button" class="chip" data-val="">Без фотографа</button>
+            <button type="button" class="chip" data-val="Таня">Таня</button>
+            <button type="button" class="chip" data-val="Настя">Настя</button>
+            <button type="button" class="chip" data-val="__custom__">Інший фотограф</button>
+          </div>
+          <input type="text" id="inpPhotographer" placeholder="Введіть ім'я фотографа" />
+        </div>
+
+        <div class="field">
+          <label>👉 Звідки запис</label>
+          <div class="chip-group" id="sourceChips">
+            <button type="button" class="chip active" data-val="Інст Аттік">Інст Аттік</button>
+            <button type="button" class="chip" data-val="Робочий телефон">Робочий телефон</button>
+            <button type="button" class="chip" data-val="Фотограф:Таня">Фотограф:Таня</button>
+            <button type="button" class="chip" data-val="Фотограф:Настя">Фотограф:Настя</button>
+            <button type="button" class="chip" data-val="__more__">+ Ще</button>
+          </div>
+          <div class="hidden-panel" id="moreSourcePanel">
+            <div class="chip-group" id="extraSourceChips">
+              <button type="button" class="chip" data-val="Інст Настя">Інст Настя</button>
+              <button type="button" class="chip" data-val="Інст Таня">Інст Таня</button>
+              <button type="button" class="chip" data-val="Телеграм Таня">Телеграм Таня</button>
+              <button type="button" class="chip" data-val="Телеграм Настя">Телеграм Настя</button>
+            </div>
           </div>
         </div>
 
         <div class="row-2">
           <div class="field">
-            <label>Цена</label>
-            <input type="number" id="inpPrice" placeholder="Например, 3500" min="0" step="50" required />
+            <label>Сума (грн)</label>
+            <input type="number" id="inpPrice" min="0" step="10" required />
           </div>
           <div class="field">
-            <label>Клиент / Примечание</label>
-            <input type="text" id="inpNote" placeholder="Имя, зал, детали" />
+            <label>Передплата (сума в грн або 0)</label>
+            <input type="number" id="inpPrepaid" min="0" step="10" value="0" />
           </div>
         </div>
 
-        <button type="submit" class="submit-btn" id="submitBtn">Сохранить запись</button>
+        <div class="field">
+          <label>Оплата / Статус</label>
+          <div class="chip-group" id="payChips">
+            <button type="button" class="chip active" data-val="Очікує оплату">Очікує оплату</button>
+            <button type="button" class="chip" data-val="Передплата: сума">Передплата: сума</button>
+            <button type="button" class="chip" data-val="Передплата: по факту">Передплата: по факту</button>
+            <button type="button" class="chip" data-val="Оплачено">Оплачено</button>
+            <button type="button" class="chip" data-val="__more__">+ Ще</button>
+          </div>
+          <div class="hidden-panel" id="morePayPanel">
+            <div class="chip-group" id="extraPayChips">
+              <button type="button" class="chip" data-val="По сертифікату">По сертифікату</button>
+              <button type="button" class="chip" data-val="Безкоштовно">Безкоштовно</button>
+              <button type="button" class="chip" data-val="Альбоми">Альбоми</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>+ Доп опція (згортається)</label>
+          <button type="button" class="chip" id="toggleExtraBtn">+ Доп</button>
+          <div class="hidden-panel" id="extraOptionPanel">
+            <div class="row-2" style="margin-bottom:8px;">
+              <div><label>Назва опції</label><input type="text" id="inpExtraName" placeholder="Наприклад: Сніг" /></div>
+              <div><label>Сума опції (грн)</label><input type="number" id="inpExtraPrice" placeholder="Наприклад: 500" min="0" step="10" /></div>
+            </div>
+            <div class="chip-group">
+              <button type="button" class="chip" id="presetSnowBtn">Сніг + 500 грн</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="row-2">
+          <div class="field"><label>Клієнт</label><input type="text" id="inpClient" placeholder="Ім'я клієнта" /></div>
+          <div class="field"><label>Сторінка клієнта (посилання)</label><input type="url" id="inpClientUrl" placeholder="https://instagram.com/..." /></div>
+        </div>
+
+        <div class="field">
+          <label>Через скільки годин зйомка прибрати з активного відліку</label>
+          <div class="chip-group" id="hideAfterChips">
+            <button type="button" class="chip active" data-val="0">Одразу після старту</button>
+            <button type="button" class="chip" data-val="1">Через 1 год</button>
+            <button type="button" class="chip" data-val="2">Через 2 год</button>
+            <button type="button" class="chip" data-val="3">Через 3 год</button>
+          </div>
+        </div>
+
+        <div class="field"><label>Нотатка</label><input type="text" id="inpNote" placeholder="Деталі, зал, реквізит..." /></div>
+
+        <button type="submit" class="submit-btn" id="submitBtn">Зберегти запис</button>
       </form>
     </div>
   </div>
-
   <script>
     const APP_CONFIG = {
       SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbwSpMN4cEo-_bmyPqhlip7VRJc0jB7waZxDqN833odD26zhuUIBwYJwDsgoYU7IZXPT/exec',
       FALLBACK_IDS: [385773988]
     };
 
-    const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
-    if (tg) {
-      tg.ready();
-      tg.expand();
-    }
+    const PAY_CYCLE = ['Очікує оплату', 'Передплата: сума', 'Передплата: по факту', 'Оплачено', 'По сертифікату', 'Безкоштовно', 'Альбоми'];
 
-    const userId = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.id)
-      ? tg.initDataUnsafe.user.id
-      : APP_CONFIG.FALLBACK_IDS[0];
+    const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
+    if (tg) { tg.ready(); tg.expand(); }
+    const userId = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.id) ? tg.initDataUnsafe.user.id : APP_CONFIG.FALLBACK_IDS[0];
 
     let bookings = [];
     let viewMode = 'day';
+    let activeScreen = 'schedule';
+    let navHistory = ['schedule'];
+    let typeFilter = 'all';
+    let searchQuery = '';
     let selectedDate = formatDateISO(new Date());
     let currentMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-    let selectedType = 'Аренда студии';
+
+    let selectedType = 'Оренда студії';
     let selectedDuration = 1;
+    let isCustomDuration = false;
+    let selectedSource = 'Інст Аттік';
+    let selectedPayStatus = 'Очікує оплату';
+    let hideAfterHours = 0;
 
     function formatDateISO(d) {
-      const y = d.getFullYear();
-      const m = String(d.getMonth() + 1).padStart(2, '0');
-      const day = String(d.getDate()).padStart(2, '0');
-      return `${y}-${m}-${day}`;
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     }
 
     function parseDateTime(dateStr, timeStr) {
-      const [y, m, d] = dateStr.split('-').map(Number);
-      const [hh, mm] = timeStr.split(':').map(Number);
-      return new Date(y, m - 1, d, hh, mm, 0);
+      const [y, m, d] = String(dateStr).split('-').map(Number);
+      const [hh, mm] = String(timeStr || '10:00').split(':').map(Number);
+      return new Date(y, (m || 1) - 1, d || 1, hh || 0, mm || 0, 0);
+    }
+
+    function isWeekendDate(dateStr) {
+      const day = parseDateTime(dateStr, '12:00').getDay();
+      return day === 0 || day === 6;
+    }
+
+    function calcSuggestedPrice(type, duration, dateStr) {
+      const dur = Number(duration) || 1;
+      const extraSum = Number(document.getElementById('inpExtraPrice').value) || 0;
+      let base = 0;
+
+      if (type === 'Оренда студії') {
+        if (dur === 0.5) base = 400;
+        else if (dur === 1) base = 800;
+        else if (dur === 1.5) base = 1200;
+        else if (dur === 2) base = 1600;
+        else base = Math.round(dur * 800);
+      } else if (type === 'ФБФ') {
+        const wknd = isWeekendDate(dateStr || selectedDate);
+        if (!wknd) {
+          if (dur === 0.5) base = 1000;
+          else if (dur === 0.75) base = 1400;
+          else if (dur === 1) base = 1800;
+          else if (dur === 1.5) base = 2200;
+          else base = Math.round(dur * 1800);
+        } else {
+          if (dur === 0.5) base = 1100;
+          else if (dur === 0.75) base = 1500;
+          else if (dur === 1) base = 1900;
+          else if (dur === 1.5) base = 2300;
+          else base = Math.round(dur * 1900);
+        }
+      }
+      return base + extraSum;
+    }
+
+    function renderDurationChips() {
+      const wrap = document.getElementById('durChips');
+      let list = [];
+      if (selectedType === 'Оренда студії') {
+        list = [
+          { label: '30 хв', val: 0.5 },
+          { label: '1 год', val: 1 },
+          { label: '1,5 год', val: 1.5 },
+          { label: '2 год', val: 2 },
+          { label: 'Своя', val: 'custom' }
+        ];
+      } else if (selectedType === 'ФБФ') {
+        list = [
+          { label: '30 хв', val: 0.5 },
+          { label: '45 хв', val: 0.75 },
+          { label: '1 год', val: 1 },
+          { label: '1,5 год', val: 1.5 },
+          { label: 'Своя', val: 'custom' }
+        ];
+      } else {
+        list = [
+          { label: '30 хв', val: 0.5 },
+          { label: '1 год', val: 1 },
+          { label: '1,5 год', val: 1.5 },
+          { label: '2 год', val: 2 },
+          { label: 'Своя', val: 'custom' }
+        ];
+      }
+
+      wrap.innerHTML = list.map(item => {
+        const active = isCustomDuration ? (item.val === 'custom') : (Number(item.val) === Number(selectedDuration));
+        return `<button type="button" class="chip ${active ? 'active' : ''}" data-dur="${item.val}">${item.label}</button>`;
+      }).join('');
+
+      document.getElementById('customDurWrap').style.display = isCustomDuration ? 'block' : 'none';
+
+      wrap.querySelectorAll('[data-dur]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const v = btn.dataset.dur;
+          if (v === 'custom') {
+            isCustomDuration = true;
+            selectedDuration = Number(document.getElementById('inpCustomDur').value) || 1;
+          } else {
+            isCustomDuration = false;
+            selectedDuration = Number(v);
+          }
+          renderDurationChips();
+          const suggested = calcSuggestedPrice(selectedType, selectedDuration, document.getElementById('inpDate').value);
+          if (suggested > 0) document.getElementById('inpPrice').value = suggested;
+          refreshConflictWarning();
+        });
+      });
     }
 
     function showToast(msg) {
       const el = document.getElementById('toast');
-      el.textContent = msg;
-      el.classList.add('show');
+      el.textContent = msg; el.classList.add('show');
       setTimeout(() => el.classList.remove('show'), 2800);
     }
 
-    function getTypeBadgeClass(type) {
-      if (type.toLowerCase().includes('без фотографа')) return 'pill-nofoto';
+    function escapeHtml(str) {
+      return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    function safeUrl(u) {
+      const s = String(u || '').trim();
+      if (!s) return '';
+      if (/^https?:\/\//i.test(s)) return s;
+      return 'https://' + s.replace(/^@/, 'instagram.com/');
+    }
+
+    function getTypeBadgeClass(t) {
+      const s = String(t || '');
+      if (s.includes('Фотодень')) return 'pill-photoday';
+      if (s.toUpperCase().includes('ФБФ')) return 'pill-fbf';
       return 'pill-studio';
+    }
+
+    function getPayBadgeClass(s) {
+      if (s === 'Оплачено' || s === 'Безкоштовно' || s === 'По сертифікату') return 'pill-paid';
+      if (String(s).includes('Передплата') || s === 'Альбоми') return 'pill-prepaid';
+      return 'pill-unpaid';
     }
 
     async function loadBookings() {
       try {
-        const url = `${APP_CONFIG.SCRIPT_URL}?action=list&userId=${encodeURIComponent(userId)}`;
-        const res = await fetch(url);
+        const res = await fetch(`${APP_CONFIG.SCRIPT_URL}?action=list&userId=${encodeURIComponent(userId)}`);
         const data = await res.json();
-        if (data.ok) {
-          bookings = data.bookings || [];
-          renderAll();
-        } else {
-          showToast(data.error || 'Ошибка загрузки');
-        }
-      } catch (e) {
-        showToast('Не удалось загрузить записи');
-      }
+        if (data.ok) { bookings = data.bookings || []; renderAll(); }
+        else { showToast(data.error || 'Помилка завантаження'); }
+      } catch (e) { showToast('Не вдалося завантажити записи'); }
     }
 
     async function postAction(payload) {
@@ -559,146 +495,365 @@
       return await res.json();
     }
 
+    function checkOverlap(dateStr, timeStr, durationHours, ignoreId) {
+      const startA = parseDateTime(dateStr, timeStr).getTime();
+      const endA = startA + (Number(durationHours) || 1) * 3600000;
+      return bookings.filter(b => {
+        if (ignoreId && String(b.id) === String(ignoreId)) return false;
+        if (b.date !== dateStr) return false;
+        const startB = parseDateTime(b.date, b.time).getTime();
+        const endB = startB + (Number(b.duration) || 1) * 3600000;
+        return startA < endB && endA > startB;
+      });
+    }
+
+    function refreshConflictWarning() {
+      const box = document.getElementById('conflictBox');
+      const d = document.getElementById('inpDate').value;
+      const t = document.getElementById('inpTime').value;
+      const id = document.getElementById('editId').value;
+      if (!d || !t) { box.classList.remove('show'); return; }
+      const c = checkOverlap(d, t, selectedDuration, id);
+      if (c.length) {
+        box.textContent = `⚠️ Накладка за часом з: ${c.map(x => `${x.time} (${x.duration} год, ${x.type})`).join(', ')}. Зберегти все одно дозволено.`;
+        box.classList.add('show');
+      } else { box.classList.remove('show'); }
+    }
+
     function updateCountdown() {
       const now = new Date();
-      const upcoming = bookings
-        .map(b => ({ ...b, dt: parseDateTime(b.date, b.time) }))
-        .filter(b => b.dt.getTime() > now.getTime())
+      const up = bookings
+        .map(b => {
+          const match = String(b.note || '').match(/\[hideAfter:(\d+)\]/);
+          const extraH = match ? Number(match[1]) : 0;
+          const dt = parseDateTime(b.date, b.time);
+          const cutoff = new Date(dt.getTime() + extraH * 3600000);
+          return { ...b, dt, cutoff };
+        })
+        .filter(b => b.cutoff.getTime() > now.getTime())
         .sort((a, b) => a.dt - b.dt)[0];
 
-      const labelEl = document.getElementById('nextLabel');
-      const timerEl = document.getElementById('timerDisplay');
-      const metaEl = document.getElementById('nextMeta');
+      const lbl = document.getElementById('nextLabel');
+      const tmr = document.getElementById('timerDisplay');
+      const meta = document.getElementById('nextMeta');
 
-      if (!upcoming) {
-        labelEl.textContent = 'Предстоящих съемок нет';
-        timerEl.textContent = '00:00:00';
-        metaEl.textContent = 'Нажмите «+ Записать съемку», чтобы добавить слот';
+      if (!up) {
+        lbl.textContent = 'Найближча зйомка';
+        tmr.textContent = '00:00:00';
+        meta.innerHTML = `<span class="pill pill-dark">Немає активних майбутніх зйомок</span>`;
         return;
       }
 
-      const diffSec = Math.max(0, Math.floor((upcoming.dt.getTime() - now.getTime()) / 1000));
-      const days = Math.floor(diffSec / 86400);
-      const hours = Math.floor((diffSec % 86400) / 3600);
-      const mins = Math.floor((diffSec % 3600) / 60);
-      const secs = diffSec % 60;
+      const diff = Math.max(0, Math.floor((up.dt.getTime() - now.getTime()) / 1000));
+      const days = Math.floor(diff / 86400);
+      const h = Math.floor((diff % 86400) / 3600);
+      const m = Math.floor((diff % 3600) / 60);
+      const s = diff % 60;
 
-      labelEl.textContent = days > 0 ? `До съемки (${days} дн.)` : 'До ближайшей съемки';
-      timerEl.textContent =
-        `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-      metaEl.innerHTML =
-        `<span class="pill pill-dark">${upcoming.date} • ${upcoming.time} (${upcoming.duration} ч)</span>` +
-        `<span class="pill pill-dark">${escapeHtml(upcoming.type)}</span>` +
-        `<span class="pill pill-dark">${upcoming.price}</span>`;
+      lbl.textContent = days > 0 ? `До зйомки (${days} дн.)` : 'До найближчої зйомки';
+      tmr.textContent = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+      meta.innerHTML =
+        `<span class="pill pill-dark">${up.date} • ${up.time} (${up.duration} год)</span>` +
+        `<span class="pill pill-dark">${escapeHtml(up.type)}</span>` +
+        `<span class="pill pill-dark">${up.price} грн</span>` +
+        (up.photographer ? `<span class="pill pill-dark">📷 ${escapeHtml(up.photographer)}</span>` : '') +
+        (up.client ? `<span class="pill pill-dark">👤 ${escapeHtml(up.client)}</span>` : '');
+    }
+
+    function renderFinance() {
+      const fromVal = document.getElementById('dateFrom').value || `${selectedDate.slice(0, 7)}-01`;
+      const toVal = document.getElementById('dateTo').value || selectedDate;
+      const items = bookings.filter(b => b.date >= fromVal && b.date <= toVal);
+
+      const total = items.reduce((s, b) => s + (Number(b.price) || 0), 0);
+      const hours = items.reduce((s, b) => s + (Number(b.duration) || 0), 0);
+      const prepaidSum = items.reduce((s, b) => s + (Number(b.prepaidAmount) || 0), 0);
+      const paidFullSum = items.filter(b => b.payStatus === 'Оплачено').reduce((s, b) => s + (Number(b.price) || 0), 0);
+      const received = Math.max(paidFullSum, prepaidSum);
+
+      const rentSum = items.filter(b => String(b.type).includes('Оренда')).reduce((s, b) => s + (Number(b.price) || 0), 0);
+      const fbfSum = items.filter(b => String(b.type).toUpperCase().includes('ФБФ')).reduce((s, b) => s + (Number(b.price) || 0), 0);
+      const pdSum = items.filter(b => String(b.type).includes('Фотодень')).reduce((s, b) => s + (Number(b.price) || 0), 0);
+
+      document.getElementById('finTotal').textContent = `${total} грн`;
+      document.getElementById('finCount').textContent = `${items.length} зйомок • ${hours} год`;
+      document.getElementById('finReceived').textContent = `${received} грн`;
+      document.getElementById('finPrepaid').textContent = `Передплат: ${prepaidSum} грн`;
+      document.getElementById('finRent').textContent = `${rentSum} грн`;
+      document.getElementById('finFbfPhotoday').textContent = `${fbfSum + pdSum} грн`;
+      document.getElementById('finBreak').textContent = `ФБФ: ${fbfSum} • Фотодень: ${pdSum}`;
     }
 
     function renderCalendar() {
-      const year = currentMonth.getFullYear();
-      const month = currentMonth.getMonth();
-      const monthNames = [
-        'Январь','Февраль','Март','Апрель','Май','Июнь',
-        'Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'
-      ];
-      document.getElementById('monthTitle').textContent = `${monthNames[month]} ${year}`;
-
-      const datesWithBookings = new Set(bookings.map(b => b.date));
+      const y = currentMonth.getFullYear(), m = currentMonth.getMonth();
+      const names = ['Січень','Лютий','Березень','Квітень','Травень','Червень','Липень','Серпень','Вересень','Жовтень','Листопад','Грудень'];
+      document.getElementById('monthTitle').textContent = `${names[m]} ${y}`;
+      const counts = {};
+      bookings.forEach(b => { counts[b.date] = (counts[b.date] || 0) + 1; });
       const todayISO = formatDateISO(new Date());
-
-      const firstDay = new Date(year, month, 1);
-      const startOffset = (firstDay.getDay() + 6) % 7;
-      const gridStart = new Date(year, month, 1 - startOffset);
-
+      const offset = (new Date(y, m, 1).getDay() + 6) % 7;
+      const start = new Date(y, m, 1 - offset);
       const grid = document.getElementById('daysGrid');
       grid.innerHTML = '';
 
       for (let i = 0; i < 42; i++) {
-        const d = new Date(gridStart.getFullYear(), gridStart.getMonth(), gridStart.getDate() + i);
+        const d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i);
         const iso = formatDateISO(d);
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'day-btn';
-        if (d.getMonth() !== month) btn.classList.add('muted');
+        if (d.getMonth() !== m) btn.classList.add('muted');
         if (iso === todayISO) btn.classList.add('today');
         if (iso === selectedDate) btn.classList.add('selected');
-
-        btn.innerHTML = `<span>${d.getDate()}</span>${datesWithBookings.has(iso) ? '<span class="dot"></span>' : ''}`;
+        const cnt = counts[iso] || 0;
+        btn.innerHTML = `<span>${d.getDate()}</span>${cnt > 0 ? `<span class="dot ${cnt >= 2 ? 'busy' : ''}"></span>` : ''}`;
         btn.addEventListener('click', () => {
           selectedDate = iso;
-          viewMode = 'day';
-          syncTabs();
-          renderCalendar();
-          renderBookingsList();
+          setViewMode('day', false);
+          renderAll();
         });
         grid.appendChild(btn);
       }
     }
 
-    function syncTabs() {
-      document.getElementById('tabDay').classList.toggle('active', viewMode === 'day');
-      document.getElementById('tabWeek').classList.toggle('active', viewMode === 'week');
+    function setViewMode(mode, recordHistory = true) {
+      if (recordHistory && mode !== viewMode) {
+        navHistory.push(`mode:${mode}`);
+      }
+      viewMode = mode;
+      document.getElementById('tabDay').classList.toggle('active', mode === 'day');
+      document.getElementById('tabWeek').classList.toggle('active', mode === 'week');
+      document.getElementById('tabMonth').classList.toggle('active', mode === 'month');
+    }
+
+    function setScreen(screen, recordHistory = true) {
+      if (recordHistory && screen !== activeScreen) {
+        navHistory.push(`screen:${screen}`);
+      }
+      activeScreen = screen;
+      document.getElementById('viewSchedule').style.display = screen === 'schedule' ? 'block' : 'none';
+      document.getElementById('viewFinance').style.display = screen === 'finance' ? 'block' : 'none';
+      document.getElementById('navCal').classList.toggle('active', screen === 'schedule');
+      document.getElementById('navFin').classList.toggle('active', screen === 'finance');
+      if (screen === 'finance') renderFinance();
+    }
+
+    function goBack() {
+      if (navHistory.length > 1) {
+        navHistory.pop();
+        const prev = navHistory[navHistory.length - 1];
+        if (prev.startsWith('screen:')) setScreen(prev.replace('screen:', ''), false);
+        if (prev.startsWith('mode:')) {
+          setScreen('schedule', false);
+          setViewMode(prev.replace('mode:', ''), false);
+        }
+        renderAll();
+      } else {
+        setScreen('schedule', false);
+        setViewMode('day', false);
+        renderAll();
+      }
     }
 
     function renderBookingsList() {
       const titleEl = document.getElementById('listTitle');
       const container = document.getElementById('bookingsContainer');
+      let base = [];
 
-      let filtered = [];
       if (viewMode === 'day') {
         titleEl.textContent = `Записи на ${selectedDate}`;
-        filtered = bookings.filter(b => b.date === selectedDate);
-      } else {
-        const start = parseDateTime(selectedDate, '00:00');
-        const end = new Date(start.getTime() + 7 * 86400 * 1000);
-        titleEl.textContent = `Неделя с ${selectedDate}`;
-        filtered = bookings.filter(b => {
+        base = bookings.filter(b => b.date === selectedDate);
+      } else if (viewMode === 'week') {
+        const s = parseDateTime(selectedDate, '00:00');
+        const e = new Date(s.getTime() + 7 * 86400 * 1000);
+        titleEl.textContent = `Тиждень з ${selectedDate}`;
+        base = bookings.filter(b => {
           const dt = parseDateTime(b.date, b.time);
-          return dt >= start && dt < end;
+          return dt >= s && dt < e;
         });
+      } else {
+        const prefix = selectedDate.slice(0, 7);
+        titleEl.textContent = `Місяць ${prefix}`;
+        base = bookings.filter(b => b.date.startsWith(prefix));
       }
 
-      if (!filtered.length) {
-        container.innerHTML = `<div style="color:var(--hint); font-size:13px; padding:8px 0;">На этот период записей нет</div>`;
+      if (typeFilter !== 'all') {
+        base = base.filter(b => String(b.type || '').toUpperCase().includes(typeFilter.toUpperCase()));
+      }
+
+      if (searchQuery.trim()) {
+        const q = searchQuery.trim().toLowerCase();
+        base = base.filter(b =>
+          String(b.client || '').toLowerCase().includes(q) ||
+          String(b.photographer || '').toLowerCase().includes(q) ||
+          String(b.type || '').toLowerCase().includes(q) ||
+          String(b.source || '').toLowerCase().includes(q) ||
+          String(b.extraOption || '').toLowerCase().includes(q) ||
+          String(b.note || '').toLowerCase().includes(q)
+        );
+      }
+
+      if (!base.length) {
+        container.innerHTML = `<div style="color:var(--hint); font-size:13px; padding:10px 0;">Записів за обраними параметрами немає</div>`;
         return;
       }
 
-      container.innerHTML = filtered.map(b => `
-        <div class="booking-item">
-          <div class="booking-top">
-            <div class="booking-time">${viewMode === 'week' ? b.date + ' • ' : ''}${b.time} (${b.duration} ч)</div>
-            <div class="booking-price">${b.price}</div>
+      container.innerHTML = base.map(b => {
+        const linkHref = safeUrl(b.clientUrl);
+        const cleanNote = String(b.note || '').replace(/\[hideAfter:\d+\]/g, '').trim();
+        return `
+          <div class="booking-item">
+            <div class="booking-top">
+              <div class="booking-time">${viewMode !== 'day' ? b.date + ' • ' : ''}${b.time} (${b.duration} год)</div>
+              <div class="booking-price">${b.price} грн</div>
+            </div>
+            <div class="badges-line">
+              <span class="pill ${getTypeBadgeClass(b.type)}">${escapeHtml(b.type)}</span>
+              <button type="button" class="pill pill-btn ${getPayBadgeClass(b.payStatus)}" onclick="cyclePayStatus('${b.id}')">${escapeHtml(b.payStatus)} ↻</button>
+              ${b.source ? `<span class="pill" style="background:var(--card);border:1px solid var(--border);">👉 ${escapeHtml(b.source)}</span>` : ''}
+            </div>
+            ${b.photographer ? `<div class="booking-meta-txt">📷 Фотограф: <b>${escapeHtml(b.photographer)}</b></div>` : ''}
+            ${Number(b.prepaidAmount) > 0 ? `<div class="booking-meta-txt">💳 Передплата: <b>${Number(b.prepaidAmount)} грн</b></div>` : ''}
+            ${b.client ? `<div class="booking-meta-txt">👤 Клієнт: ${escapeHtml(b.client)}</div>` : ''}
+            ${linkHref ? `<div class="booking-meta-txt"><a class="client-link" href="${escapeHtml(linkHref)}" target="_blank" rel="noopener noreferrer">🔗 сторінка клієнта</a></div>` : ''}
+            ${b.extraOption ? `<div class="booking-meta-txt">➕ Доп: ${escapeHtml(b.extraOption)}</div>` : ''}
+            ${cleanNote ? `<div class="booking-note">📝 ${escapeHtml(cleanNote)}</div>` : ''}
+            <div class="booking-actions">
+              <button type="button" class="edit-btn" onclick="openEditModal('${b.id}')">Редагувати</button>
+              <button type="button" class="del-btn" onclick="handleDelete('${b.id}')">Видалити</button>
+            </div>
           </div>
-          <span class="pill ${getTypeBadgeClass(b.type)}">${escapeHtml(b.type)}</span>
-          ${b.note ? `<div class="booking-note">${escapeHtml(b.note)}</div>` : ''}
-          <div class="booking-actions">
-            <button type="button" class="del-btn" onclick="handleDelete('${b.id}')">Удалить</button>
-          </div>
-        </div>
-      `).join('');
+        `;
+      }).join('');
+    }
+
+    async function cyclePayStatus(id) {
+      const b = bookings.find(x => String(x.id) === String(id));
+      if (!b) return;
+      const idx = PAY_CYCLE.indexOf(b.payStatus);
+      const nextStatus = PAY_CYCLE[(idx + 1) % PAY_CYCLE.length];
+      const res = await postAction({ action: 'update', ...b, payStatus: nextStatus, silent: true });
+      if (res.ok) { bookings = res.bookings || []; renderAll(); showToast(`Статус: ${nextStatus}`); }
+      else { showToast(res.error || 'Помилка зміни статусу'); }
+    }
+
+    function setChipActive(containerId, val) {
+      document.querySelectorAll(`#${containerId} .chip`).forEach(c => {
+        c.classList.toggle('active', c.dataset.val === String(val));
+      });
+    }
+
+    function openCreateModal() {
+      document.getElementById('modalTitle').textContent = 'Нова зйомка';
+      document.getElementById('editId').value = '';
+      document.getElementById('inpDate').value = selectedDate;
+      document.getElementById('inpTime').value = '10:00';
+      document.getElementById('inpPhotographer').value = '';
+      document.getElementById('inpPrepaid').value = '0';
+      document.getElementById('inpClient').value = '';
+      document.getElementById('inpClientUrl').value = '';
+      document.getElementById('inpExtraName').value = '';
+      document.getElementById('inpExtraPrice').value = '';
+      document.getElementById('inpCustomDur').value = '';
+      document.getElementById('inpNote').value = '';
+
+      selectedType = 'Оренда студії';
+      selectedDuration = 1;
+      isCustomDuration = false;
+      selectedSource = 'Інст Аттік';
+      selectedPayStatus = 'Очікує оплату';
+      hideAfterHours = 0;
+
+      setChipActive('typeChips', selectedType);
+      setChipActive('timeChips', '10:00');
+      renderDurationChips();
+      setChipActive('photoChips', '');
+      setChipActive('sourceChips', selectedSource);
+      setChipActive('extraSourceChips', '');
+      setChipActive('payChips', selectedPayStatus);
+      setChipActive('extraPayChips', '');
+      setChipActive('hideAfterChips', '0');
+
+      document.getElementById('moreSourcePanel').classList.remove('open');
+      document.getElementById('morePayPanel').classList.remove('open');
+      document.getElementById('extraOptionPanel').classList.remove('open');
+
+      document.getElementById('inpPrice').value = calcSuggestedPrice(selectedType, selectedDuration, selectedDate);
+      refreshConflictWarning();
+      document.getElementById('modalBackdrop').classList.add('open');
+    }
+
+    function openEditModal(id) {
+      const b = bookings.find(x => String(x.id) === String(id));
+      if (!b) return;
+
+      document.getElementById('modalTitle').textContent = 'Редагування зйомки';
+      document.getElementById('editId').value = b.id;
+      document.getElementById('inpDate').value = b.date;
+      document.getElementById('inpTime').value = b.time;
+      document.getElementById('inpPrice').value = b.price;
+      document.getElementById('inpPrepaid').value = b.prepaidAmount || 0;
+      document.getElementById('inpClient').value = b.client || '';
+      document.getElementById('inpClientUrl').value = b.clientUrl || '';
+
+      const rawNote = String(b.note || '');
+      const hMatch = rawNote.match(/\[hideAfter:(\d+)\]/);
+      hideAfterHours = hMatch ? Number(hMatch[1]) : 0;
+      document.getElementById('inpNote').value = rawNote.replace(/\[hideAfter:\d+\]/g, '').trim();
+
+      selectedType = b.type || 'Оренда студії';
+      selectedDuration = Number(b.duration) || 1;
+      isCustomDuration = ![0.5, 0.75, 1, 1.5, 2].includes(selectedDuration);
+      if (isCustomDuration) document.getElementById('inpCustomDur').value = selectedDuration;
+
+      selectedSource = b.source || 'Інст Аттік';
+      selectedPayStatus = b.payStatus || 'Очікує оплату';
+      document.getElementById('inpPhotographer').value = b.photographer || '';
+
+      if (b.extraOption) {
+        const parts = String(b.extraOption).split('—');
+        document.getElementById('inpExtraName').value = (parts[0] || '').trim();
+        document.getElementById('inpExtraPrice').value = parseInt((parts[1] || '').replace(/\D+/g, ''), 10) || '';
+        document.getElementById('extraOptionPanel').classList.add('open');
+      } else {
+        document.getElementById('inpExtraName').value = '';
+        document.getElementById('inpExtraPrice').value = '';
+        document.getElementById('extraOptionPanel').classList.remove('open');
+      }
+
+      setChipActive('typeChips', selectedType);
+      setChipActive('timeChips', b.time);
+      renderDurationChips();
+      setChipActive('sourceChips', selectedSource);
+      setChipActive('extraSourceChips', selectedSource);
+      setChipActive('payChips', selectedPayStatus);
+      setChipActive('extraPayChips', selectedPayStatus);
+      setChipActive('hideAfterChips', String(hideAfterHours));
+
+      refreshConflictWarning();
+      document.getElementById('modalBackdrop').classList.add('open');
     }
 
     async function handleDelete(id) {
       const res = await postAction({ action: 'delete', id });
-      if (res.ok) {
-        bookings = res.bookings || [];
-        renderAll();
-        showToast('Запись удалена');
-      } else {
-        showToast(res.error || 'Ошибка удаления');
-      }
-    }
-
-    function escapeHtml(str) {
-      return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;');
+      if (res.ok) { bookings = res.bookings || []; renderAll(); showToast('Запис видалено'); }
+      else { showToast(res.error || 'Помилка видалення'); }
     }
 
     function renderAll() {
       renderCalendar();
       renderBookingsList();
+      renderFinance();
       updateCountdown();
     }
+
+    document.getElementById('todayBtn').addEventListener('click', () => {
+      const now = new Date();
+      selectedDate = formatDateISO(now);
+      currentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      setViewMode('day', true);
+      renderAll();
+    });
 
     document.getElementById('prevMonth').addEventListener('click', () => {
       currentMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1);
@@ -710,78 +865,222 @@
       renderCalendar();
     });
 
-    document.getElementById('tabDay').addEventListener('click', () => {
-      viewMode = 'day';
-      syncTabs();
-      renderBookingsList();
+    document.getElementById('tabDay').addEventListener('click', () => { setViewMode('day', true); renderBookingsList(); });
+    document.getElementById('tabWeek').addEventListener('click', () => { setViewMode('week', true); renderBookingsList(); });
+    document.getElementById('tabMonth').addEventListener('click', () => { setViewMode('month', true); renderBookingsList(); });
+
+    document.getElementById('backTabBtn').addEventListener('click', goBack);
+    document.getElementById('backFromFinanceBtn').addEventListener('click', goBack);
+    document.getElementById('navBack').addEventListener('click', goBack);
+
+    document.getElementById('navCal').addEventListener('click', () => { setScreen('schedule', true); renderAll(); });
+    document.getElementById('navToday').addEventListener('click', () => {
+      const now = new Date();
+      selectedDate = formatDateISO(now);
+      currentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      setScreen('schedule', true);
+      setViewMode('day', true);
+      renderAll();
+    });
+    document.getElementById('navFin').addEventListener('click', () => { setScreen('finance', true); });
+
+    document.getElementById('presetMonthBtn').addEventListener('click', () => {
+      const p = selectedDate.slice(0, 7);
+      document.getElementById('dateFrom').value = `${p}-01`;
+      document.getElementById('dateTo').value = `${p}-31`;
+      renderFinance();
+    });
+    document.getElementById('presetWeekBtn').addEventListener('click', () => {
+      const s = parseDateTime(selectedDate, '00:00');
+      const e = new Date(s.getTime() + 7 * 86400 * 1000);
+      document.getElementById('dateFrom').value = selectedDate;
+      document.getElementById('dateTo').value = formatDateISO(e);
+      renderFinance();
+    });
+    document.getElementById('dateFrom').addEventListener('change', renderFinance);
+    document.getElementById('dateTo').addEventListener('change', renderFinance);
+
+    document.querySelectorAll('#typeFilters .chip').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('#typeFilters .chip').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        typeFilter = btn.dataset.filter;
+        renderBookingsList();
+      });
     });
 
-    document.getElementById('tabWeek').addEventListener('click', () => {
-      viewMode = 'week';
-      syncTabs();
+    document.getElementById('searchInput').addEventListener('input', e => {
+      searchQuery = e.target.value;
       renderBookingsList();
     });
 
     const modal = document.getElementById('modalBackdrop');
-    document.getElementById('openModalBtn').addEventListener('click', () => {
-      document.getElementById('inpDate').value = selectedDate;
-      modal.classList.add('open');
-    });
+    document.getElementById('openModalBtn').addEventListener('click', openCreateModal);
     document.getElementById('closeModalBtn').addEventListener('click', () => modal.classList.remove('open'));
-    modal.addEventListener('click', e => {
-      if (e.target === modal) modal.classList.remove('open');
-    });
+    modal.addEventListener('click', e => { if (e.target === modal) modal.classList.remove('open'); });
 
-    document.querySelectorAll('#typeChips .chip').forEach(chip => {
-      chip.addEventListener('click', () => {
-        document.querySelectorAll('#typeChips .chip').forEach(c => c.classList.remove('active'));
-        chip.classList.add('active');
-        selectedType = chip.dataset.val;
+    document.querySelectorAll('#typeChips .chip').forEach(c => {
+      c.addEventListener('click', () => {
+        setChipActive('typeChips', c.dataset.val);
+        selectedType = c.dataset.val;
+        isCustomDuration = false;
+        selectedDuration = 1;
+        renderDurationChips();
+        const suggested = calcSuggestedPrice(selectedType, selectedDuration, document.getElementById('inpDate').value);
+        if (suggested > 0) document.getElementById('inpPrice').value = suggested;
       });
     });
 
-    document.querySelectorAll('#durChips .chip').forEach(chip => {
-      chip.addEventListener('click', () => {
-        document.querySelectorAll('#durChips .chip').forEach(c => c.classList.remove('active'));
-        chip.classList.add('active');
-        selectedDuration = Number(chip.dataset.val);
+    document.querySelectorAll('#timeChips .chip').forEach(c => {
+      c.addEventListener('click', () => {
+        setChipActive('timeChips', c.dataset.val);
+        document.getElementById('inpTime').value = c.dataset.val;
+        refreshConflictWarning();
       });
     });
 
-    document.getElementById('bookingForm').addEventListener('submit', async (e) => {
+    document.getElementById('inpCustomDur').addEventListener('input', e => {
+      selectedDuration = Number(e.target.value) || 1;
+      const suggested = calcSuggestedPrice(selectedType, selectedDuration, document.getElementById('inpDate').value);
+      if (suggested > 0) document.getElementById('inpPrice').value = suggested;
+      refreshConflictWarning();
+    });
+
+    document.querySelectorAll('#photoChips .chip').forEach(c => {
+      c.addEventListener('click', () => {
+        setChipActive('photoChips', c.dataset.val);
+        if (c.dataset.val === '__custom__') {
+          document.getElementById('inpPhotographer').focus();
+        } else {
+          document.getElementById('inpPhotographer').value = c.dataset.val;
+        }
+      });
+    });
+
+    document.querySelectorAll('#sourceChips .chip').forEach(c => {
+      c.addEventListener('click', () => {
+        if (c.dataset.val === '__more__') {
+          document.getElementById('moreSourcePanel').classList.toggle('open');
+          return;
+        }
+        setChipActive('sourceChips', c.dataset.val);
+        setChipActive('extraSourceChips', '');
+        selectedSource = c.dataset.val;
+      });
+    });
+
+    document.querySelectorAll('#extraSourceChips .chip').forEach(c => {
+      c.addEventListener('click', () => {
+        setChipActive('sourceChips', '');
+        setChipActive('extraSourceChips', c.dataset.val);
+        selectedSource = c.dataset.val;
+      });
+    });
+
+    document.querySelectorAll('#payChips .chip').forEach(c => {
+      c.addEventListener('click', () => {
+        if (c.dataset.val === '__more__') {
+          document.getElementById('morePayPanel').classList.toggle('open');
+          return;
+        }
+        setChipActive('payChips', c.dataset.val);
+        setChipActive('extraPayChips', '');
+        selectedPayStatus = c.dataset.val;
+      });
+    });
+
+    document.querySelectorAll('#extraPayChips .chip').forEach(c => {
+      c.addEventListener('click', () => {
+        setChipActive('payChips', '');
+        setChipActive('extraPayChips', c.dataset.val);
+        selectedPayStatus = c.dataset.val;
+      });
+    });
+
+    document.getElementById('toggleExtraBtn').addEventListener('click', () => {
+      document.getElementById('extraOptionPanel').classList.toggle('open');
+    });
+
+    document.getElementById('presetSnowBtn').addEventListener('click', () => {
+      document.getElementById('inpExtraName').value = 'Сніг';
+      document.getElementById('inpExtraPrice').value = '500';
+      const base = calcSuggestedPrice(selectedType, selectedDuration, document.getElementById('inpDate').value);
+      document.getElementById('inpPrice').value = base;
+    });
+
+    document.getElementById('inpExtraPrice').addEventListener('input', () => {
+      const suggested = calcSuggestedPrice(selectedType, selectedDuration, document.getElementById('inpDate').value);
+      if (suggested > 0) document.getElementById('inpPrice').value = suggested;
+    });
+
+    document.querySelectorAll('#hideAfterChips .chip').forEach(c => {
+      c.addEventListener('click', () => {
+        setChipActive('hideAfterChips', c.dataset.val);
+        hideAfterHours = Number(c.dataset.val) || 0;
+      });
+    });
+
+    document.getElementById('inpDate').addEventListener('change', () => {
+      const suggested = calcSuggestedPrice(selectedType, selectedDuration, document.getElementById('inpDate').value);
+      if (suggested > 0) document.getElementById('inpPrice').value = suggested;
+      refreshConflictWarning();
+    });
+    document.getElementById('inpTime').addEventListener('change', refreshConflictWarning);
+
+    document.getElementById('bookingForm').addEventListener('submit', async e => {
       e.preventDefault();
+      const editId = document.getElementById('editId').value.trim();
+      const extraName = document.getElementById('inpExtraName').value.trim();
+      const extraPrice = Number(document.getElementById('inpExtraPrice').value) || 0;
+      const extraOptionText = extraName ? `${extraName} — ${extraPrice} грн` : (extraPrice > 0 ? `Доп — ${extraPrice} грн` : '');
+
+      const baseNote = document.getElementById('inpNote').value.trim();
+      const fullNote = hideAfterHours > 0 ? `${baseNote} [hideAfter:${hideAfterHours}]`.trim() : baseNote;
+
       const payload = {
-        action: 'add',
+        action: editId ? 'update' : 'add',
+        id: editId || undefined,
         date: document.getElementById('inpDate').value,
         time: document.getElementById('inpTime').value,
         duration: selectedDuration,
         type: selectedType,
+        photographer: document.getElementById('inpPhotographer').value.trim(),
+        source: selectedSource,
         price: Number(document.getElementById('inpPrice').value) || 0,
-        note: document.getElementById('inpNote').value.trim()
+        prepaidAmount: Number(document.getElementById('inpPrepaid').value) || 0,
+        payStatus: selectedPayStatus,
+        client: document.getElementById('inpClient').value.trim(),
+        clientUrl: document.getElementById('inpClientUrl').value.trim(),
+        extraOption: extraOptionText,
+        note: fullNote
       };
 
       const btn = document.getElementById('submitBtn');
       btn.disabled = true;
-      btn.textContent = 'Сохраняем...';
+      btn.textContent = 'Зберігаємо...';
 
       try {
         const res = await postAction(payload);
         if (res.ok) {
           bookings = res.bookings || [];
           selectedDate = payload.date;
+          const dt = parseDateTime(payload.date, '12:00');
+          currentMonth = new Date(dt.getFullYear(), dt.getMonth(), 1);
           modal.classList.remove('open');
-          document.getElementById('inpPrice').value = '';
-          document.getElementById('inpNote').value = '';
           renderAll();
-          showToast('Запись сохранена');
+          showToast(editId ? 'Зйомку оновлено' : 'Запис збережено');
         } else {
-          showToast(res.error || 'Ошибка сохранения');
+          showToast(res.error || 'Помилка збереження');
         }
       } finally {
         btn.disabled = false;
-        btn.textContent = 'Сохранить запись';
+        btn.textContent = 'Зберегти запис';
       }
     });
+
+    const pInit = selectedDate.slice(0, 7);
+    document.getElementById('dateFrom').value = `${pInit}-01`;
+    document.getElementById('dateTo').value = selectedDate;
 
     setInterval(updateCountdown, 1000);
     loadBookings();
