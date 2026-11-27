@@ -1,6 +1,790 @@
-{\rtf1\ansi\ansicpg1251\cocoartf2822
-\cocoatextscaling0\cocoaplatform0{\fonttbl}
-{\colortbl;\red255\green255\blue255;}
-{\*\expandedcolortbl;;}
-\paperw11900\paperh16840\margl1440\margr1440\vieww12720\viewh7800\viewkind0
-}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Календарь съемок</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    :root {
+      --bg: var(--tg-theme-bg-color, #f4f6fa);
+      --card: var(--tg-theme-secondary-bg-color, #ffffff);
+      --text: var(--tg-theme-text-color, #111827);
+      --hint: var(--tg-theme-hint-color, #6b7280);
+      --accent: var(--tg-theme-button-color, #2563eb);
+      --accent-text: var(--tg-theme-button-text-color, #ffffff);
+      --border: rgba(128, 128, 128, 0.16);
+      --success: #16a34a;
+      --danger: #dc2626;
+      --studio-bg: rgba(37, 99, 235, 0.12);
+      --studio-fg: #2563eb;
+      --nofoto-bg: rgba(16, 185, 129, 0.14);
+      --nofoto-fg: #059669;
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      margin: 0;
+      padding: 14px 14px 92px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.4;
+    }
+
+    .countdown-card {
+      background: linear-gradient(135deg, #1e293b, #0f172a);
+      color: #ffffff;
+      border-radius: 18px;
+      padding: 16px;
+      margin-bottom: 14px;
+      box-shadow: 0 10px 24px rgba(15, 23, 42, 0.16);
+      position: relative;
+      overflow: hidden;
+      animation: fadeSlide 0.35s ease;
+    }
+
+    .countdown-card::after {
+      content: "";
+      position: absolute;
+      width: 140px;
+      height: 140px;
+      right: -35px;
+      top: -35px;
+      border-radius: 50%;
+      background: rgba(59, 130, 246, 0.22);
+      animation: pulseGlow 3s infinite ease-in-out;
+      pointer-events: none;
+    }
+
+    @keyframes pulseGlow {
+      0%, 100% { transform: scale(1); opacity: 0.7; }
+      50% { transform: scale(1.18); opacity: 1; }
+    }
+
+    @keyframes fadeSlide {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .countdown-label {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      opacity: 0.78;
+      margin-bottom: 6px;
+    }
+
+    .timer-digits {
+      font-size: 28px;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: 0.03em;
+      margin: 4px 0 8px;
+    }
+
+    .countdown-meta {
+      font-size: 13px;
+      opacity: 0.92;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 9px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .pill-studio { background: var(--studio-bg); color: var(--studio-fg); }
+    .pill-nofoto { background: var(--nofoto-bg); color: var(--nofoto-fg); }
+    .pill-dark { background: rgba(255, 255, 255, 0.14); color: #fff; }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px;
+      margin-bottom: 14px;
+      animation: fadeSlide 0.3s ease;
+    }
+
+    .cal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+
+    .cal-title {
+      font-weight: 700;
+      font-size: 16px;
+      text-transform: capitalize;
+    }
+
+    .icon-btn {
+      background: var(--bg);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 6px 11px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.12s ease;
+    }
+
+    .icon-btn:active { transform: scale(0.94); }
+
+    .weekdays, .days-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+      text-align: center;
+    }
+
+    .weekdays div {
+      font-size: 11px;
+      color: var(--hint);
+      font-weight: 600;
+      padding-bottom: 4px;
+    }
+
+    .day-btn {
+      position: relative;
+      height: 40px;
+      border: none;
+      border-radius: 11px;
+      background: transparent;
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.18s ease, transform 0.12s ease;
+    }
+
+    .day-btn:active { transform: scale(0.92); }
+    .day-btn.muted { opacity: 0.32; }
+    .day-btn.today { border: 1.5px solid var(--accent); font-weight: 700; }
+    .day-btn.selected {
+      background: var(--accent) !important;
+      color: var(--accent-text) !important;
+      font-weight: 700;
+    }
+
+    .dot {
+      position: absolute;
+      bottom: 4px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--accent);
+    }
+
+    .day-btn.selected .dot { background: var(--accent-text); }
+
+    .tabs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      background: var(--bg);
+      padding: 4px;
+      border-radius: 12px;
+      margin-bottom: 12px;
+    }
+
+    .tab-btn {
+      border: none;
+      border-radius: 9px;
+      padding: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      background: transparent;
+      color: var(--hint);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .tab-btn.active {
+      background: var(--card);
+      color: var(--text);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    }
+
+    .booking-item {
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 12px;
+      margin-bottom: 10px;
+      background: var(--bg);
+      animation: fadeSlide 0.25s ease;
+    }
+
+    .booking-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    .booking-time {
+      font-weight: 700;
+      font-size: 15px;
+    }
+
+    .booking-price {
+      font-weight: 700;
+      color: var(--success);
+      font-size: 14px;
+    }
+
+    .booking-note {
+      font-size: 13px;
+      color: var(--hint);
+      margin-top: 6px;
+    }
+
+    .booking-actions {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 8px;
+    }
+
+    .del-btn {
+      border: none;
+      background: rgba(220, 38, 38, 0.1);
+      color: var(--danger);
+      font-size: 12px;
+      font-weight: 600;
+      padding: 5px 10px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    .fab {
+      position: fixed;
+      left: 14px;
+      right: 14px;
+      bottom: 14px;
+      background: var(--accent);
+      color: var(--accent-text);
+      border: none;
+      border-radius: 15px;
+      padding: 14px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 8px 20px rgba(37, 99, 235, 0.28);
+      transition: transform 0.15s ease;
+      z-index: 20;
+    }
+
+    .fab:active { transform: scale(0.98); }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.48);
+      display: none;
+      align-items: flex-end;
+      z-index: 50;
+      backdrop-filter: blur(2px);
+    }
+
+    .modal-backdrop.open { display: flex; }
+
+    .sheet {
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+      background: var(--card);
+      border-radius: 22px 22px 0 0;
+      padding: 18px 16px 26px;
+      animation: sheetUp 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    @keyframes sheetUp {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
+    }
+
+    .field { margin-bottom: 12px; }
+    .field label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--hint);
+      margin-bottom: 5px;
+    }
+
+    .field input, .field select {
+      width: 100%;
+      padding: 11px 12px;
+      border-radius: 11px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      font-size: 14px;
+    }
+
+    .chip-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .chip {
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      padding: 7px 11px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .chip.active {
+      background: var(--accent);
+      color: var(--accent-text);
+      border-color: var(--accent);
+    }
+
+    .row-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .submit-btn {
+      width: 100%;
+      padding: 13px;
+      border: none;
+      border-radius: 12px;
+      background: var(--accent);
+      color: var(--accent-text);
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .toast {
+      position: fixed;
+      top: 14px;
+      left: 14px;
+      right: 14px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      background: #111827;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 600;
+      display: none;
+      z-index: 100;
+      text-align: center;
+    }
+
+    .toast.show { display: block; animation: fadeSlide 0.2s ease; }
+  </style>
+</head>
+<body>
+  <div id="toast" class="toast"></div>
+
+  <div class="countdown-card">
+    <div class="countdown-label" id="nextLabel">Ближайшая съемка</div>
+    <div class="timer-digits" id="timerDisplay">--:--:--</div>
+    <div class="countdown-meta" id="nextMeta">Загрузка расписания...</div>
+  </div>
+
+  <div class="card">
+    <div class="cal-header">
+      <button class="icon-btn" id="prevMonth">‹</button>
+      <div class="cal-title" id="monthTitle"></div>
+      <button class="icon-btn" id="nextMonth">›</button>
+    </div>
+    <div class="weekdays">
+      <div>Пн</div><div>Вт</div><div>Ср</div><div>Чт</div><div>Пт</div><div>Сб</div><div>Вс</div>
+    </div>
+    <div class="days-grid" id="daysGrid"></div>
+  </div>
+
+  <div class="card">
+    <div class="tabs">
+      <button class="tab-btn active" id="tabDay">На выбранный день</button>
+      <button class="tab-btn" id="tabWeek">Вся неделя</button>
+    </div>
+    <div id="listTitle" style="font-weight:700; margin-bottom:10px; font-size:14px;"></div>
+    <div id="bookingsContainer"></div>
+  </div>
+
+  <button class="fab" id="openModalBtn">+ Записать съемку</button>
+
+  <div class="modal-backdrop" id="modalBackdrop">
+    <div class="sheet">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+        <div style="font-size:17px; font-weight:800;">Новая запись</div>
+        <button class="icon-btn" id="closeModalBtn">✕</button>
+      </div>
+
+      <form id="bookingForm">
+        <div class="field">
+          <label>Формат съемки</label>
+          <div class="chip-group" id="typeChips">
+            <button type="button" class="chip active" data-val="Аренда студии">Аренда студии</button>
+            <button type="button" class="chip" data-val="Без фотографа">Без фотографа</button>
+          </div>
+        </div>
+
+        <div class="row-2">
+          <div class="field">
+            <label>Дата</label>
+            <input type="date" id="inpDate" required />
+          </div>
+          <div class="field">
+            <label>Время начала</label>
+            <input type="time" id="inpTime" value="12:00" required />
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Продолжительность (часов)</label>
+          <div class="chip-group" id="durChips">
+            <button type="button" class="chip" data-val="0.5">0.5 ч</button>
+            <button type="button" class="chip active" data-val="1">1 ч</button>
+            <button type="button" class="chip" data-val="1.5">1.5 ч</button>
+            <button type="button" class="chip" data-val="2">2 ч</button>
+            <button type="button" class="chip" data-val="3">3 ч</button>
+            <button type="button" class="chip" data-val="4">4 ч</button>
+          </div>
+        </div>
+
+        <div class="row-2">
+          <div class="field">
+            <label>Цена</label>
+            <input type="number" id="inpPrice" placeholder="Например, 3500" min="0" step="50" required />
+          </div>
+          <div class="field">
+            <label>Клиент / Примечание</label>
+            <input type="text" id="inpNote" placeholder="Имя, зал, детали" />
+          </div>
+        </div>
+
+        <button type="submit" class="submit-btn" id="submitBtn">Сохранить запись</button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const APP_CONFIG = {
+      SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbwSpMN4cEo-_bmyPqhlip7VRJc0jB7waZxDqN833odD26zhuUIBwYJwDsgoYU7IZXPT/exec',
+      FALLBACK_IDS: [385773988]
+    };
+
+    const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
+    if (tg) {
+      tg.ready();
+      tg.expand();
+    }
+
+    const userId = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.id)
+      ? tg.initDataUnsafe.user.id
+      : APP_CONFIG.FALLBACK_IDS[0];
+
+    let bookings = [];
+    let viewMode = 'day';
+    let selectedDate = formatDateISO(new Date());
+    let currentMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+    let selectedType = 'Аренда студии';
+    let selectedDuration = 1;
+
+    function formatDateISO(d) {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    }
+
+    function parseDateTime(dateStr, timeStr) {
+      const [y, m, d] = dateStr.split('-').map(Number);
+      const [hh, mm] = timeStr.split(':').map(Number);
+      return new Date(y, m - 1, d, hh, mm, 0);
+    }
+
+    function showToast(msg) {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.classList.add('show');
+      setTimeout(() => el.classList.remove('show'), 2800);
+    }
+
+    function getTypeBadgeClass(type) {
+      if (type.toLowerCase().includes('без фотографа')) return 'pill-nofoto';
+      return 'pill-studio';
+    }
+
+    async function loadBookings() {
+      try {
+        const url = `${APP_CONFIG.SCRIPT_URL}?action=list&userId=${encodeURIComponent(userId)}`;
+        const res = await fetch(url);
+        const data = await res.json();
+        if (data.ok) {
+          bookings = data.bookings || [];
+          renderAll();
+        } else {
+          showToast(data.error || 'Ошибка загрузки');
+        }
+      } catch (e) {
+        showToast('Не удалось загрузить записи');
+      }
+    }
+
+    async function postAction(payload) {
+      const res = await fetch(APP_CONFIG.SCRIPT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ ...payload, userId })
+      });
+      return await res.json();
+    }
+
+    function updateCountdown() {
+      const now = new Date();
+      const upcoming = bookings
+        .map(b => ({ ...b, dt: parseDateTime(b.date, b.time) }))
+        .filter(b => b.dt.getTime() > now.getTime())
+        .sort((a, b) => a.dt - b.dt)[0];
+
+      const labelEl = document.getElementById('nextLabel');
+      const timerEl = document.getElementById('timerDisplay');
+      const metaEl = document.getElementById('nextMeta');
+
+      if (!upcoming) {
+        labelEl.textContent = 'Предстоящих съемок нет';
+        timerEl.textContent = '00:00:00';
+        metaEl.textContent = 'Нажмите «+ Записать съемку», чтобы добавить слот';
+        return;
+      }
+
+      const diffSec = Math.max(0, Math.floor((upcoming.dt.getTime() - now.getTime()) / 1000));
+      const days = Math.floor(diffSec / 86400);
+      const hours = Math.floor((diffSec % 86400) / 3600);
+      const mins = Math.floor((diffSec % 3600) / 60);
+      const secs = diffSec % 60;
+
+      labelEl.textContent = days > 0 ? `До съемки (${days} дн.)` : 'До ближайшей съемки';
+      timerEl.textContent =
+        `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+      metaEl.innerHTML =
+        `<span class="pill pill-dark">${upcoming.date} • ${upcoming.time} (${upcoming.duration} ч)</span>` +
+        `<span class="pill pill-dark">${escapeHtml(upcoming.type)}</span>` +
+        `<span class="pill pill-dark">${upcoming.price}</span>`;
+    }
+
+    function renderCalendar() {
+      const year = currentMonth.getFullYear();
+      const month = currentMonth.getMonth();
+      const monthNames = [
+        'Январь','Февраль','Март','Апрель','Май','Июнь',
+        'Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'
+      ];
+      document.getElementById('monthTitle').textContent = `${monthNames[month]} ${year}`;
+
+      const datesWithBookings = new Set(bookings.map(b => b.date));
+      const todayISO = formatDateISO(new Date());
+
+      const firstDay = new Date(year, month, 1);
+      const startOffset = (firstDay.getDay() + 6) % 7;
+      const gridStart = new Date(year, month, 1 - startOffset);
+
+      const grid = document.getElementById('daysGrid');
+      grid.innerHTML = '';
+
+      for (let i = 0; i < 42; i++) {
+        const d = new Date(gridStart.getFullYear(), gridStart.getMonth(), gridStart.getDate() + i);
+        const iso = formatDateISO(d);
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'day-btn';
+        if (d.getMonth() !== month) btn.classList.add('muted');
+        if (iso === todayISO) btn.classList.add('today');
+        if (iso === selectedDate) btn.classList.add('selected');
+
+        btn.innerHTML = `<span>${d.getDate()}</span>${datesWithBookings.has(iso) ? '<span class="dot"></span>' : ''}`;
+        btn.addEventListener('click', () => {
+          selectedDate = iso;
+          viewMode = 'day';
+          syncTabs();
+          renderCalendar();
+          renderBookingsList();
+        });
+        grid.appendChild(btn);
+      }
+    }
+
+    function syncTabs() {
+      document.getElementById('tabDay').classList.toggle('active', viewMode === 'day');
+      document.getElementById('tabWeek').classList.toggle('active', viewMode === 'week');
+    }
+
+    function renderBookingsList() {
+      const titleEl = document.getElementById('listTitle');
+      const container = document.getElementById('bookingsContainer');
+
+      let filtered = [];
+      if (viewMode === 'day') {
+        titleEl.textContent = `Записи на ${selectedDate}`;
+        filtered = bookings.filter(b => b.date === selectedDate);
+      } else {
+        const start = parseDateTime(selectedDate, '00:00');
+        const end = new Date(start.getTime() + 7 * 86400 * 1000);
+        titleEl.textContent = `Неделя с ${selectedDate}`;
+        filtered = bookings.filter(b => {
+          const dt = parseDateTime(b.date, b.time);
+          return dt >= start && dt < end;
+        });
+      }
+
+      if (!filtered.length) {
+        container.innerHTML = `<div style="color:var(--hint); font-size:13px; padding:8px 0;">На этот период записей нет</div>`;
+        return;
+      }
+
+      container.innerHTML = filtered.map(b => `
+        <div class="booking-item">
+          <div class="booking-top">
+            <div class="booking-time">${viewMode === 'week' ? b.date + ' • ' : ''}${b.time} (${b.duration} ч)</div>
+            <div class="booking-price">${b.price}</div>
+          </div>
+          <span class="pill ${getTypeBadgeClass(b.type)}">${escapeHtml(b.type)}</span>
+          ${b.note ? `<div class="booking-note">${escapeHtml(b.note)}</div>` : ''}
+          <div class="booking-actions">
+            <button type="button" class="del-btn" onclick="handleDelete('${b.id}')">Удалить</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function handleDelete(id) {
+      const res = await postAction({ action: 'delete', id });
+      if (res.ok) {
+        bookings = res.bookings || [];
+        renderAll();
+        showToast('Запись удалена');
+      } else {
+        showToast(res.error || 'Ошибка удаления');
+      }
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+    }
+
+    function renderAll() {
+      renderCalendar();
+      renderBookingsList();
+      updateCountdown();
+    }
+
+    document.getElementById('prevMonth').addEventListener('click', () => {
+      currentMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1);
+      renderCalendar();
+    });
+
+    document.getElementById('nextMonth').addEventListener('click', () => {
+      currentMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1);
+      renderCalendar();
+    });
+
+    document.getElementById('tabDay').addEventListener('click', () => {
+      viewMode = 'day';
+      syncTabs();
+      renderBookingsList();
+    });
+
+    document.getElementById('tabWeek').addEventListener('click', () => {
+      viewMode = 'week';
+      syncTabs();
+      renderBookingsList();
+    });
+
+    const modal = document.getElementById('modalBackdrop');
+    document.getElementById('openModalBtn').addEventListener('click', () => {
+      document.getElementById('inpDate').value = selectedDate;
+      modal.classList.add('open');
+    });
+    document.getElementById('closeModalBtn').addEventListener('click', () => modal.classList.remove('open'));
+    modal.addEventListener('click', e => {
+      if (e.target === modal) modal.classList.remove('open');
+    });
+
+    document.querySelectorAll('#typeChips .chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        document.querySelectorAll('#typeChips .chip').forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        selectedType = chip.dataset.val;
+      });
+    });
+
+    document.querySelectorAll('#durChips .chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        document.querySelectorAll('#durChips .chip').forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        selectedDuration = Number(chip.dataset.val);
+      });
+    });
+
+    document.getElementById('bookingForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const payload = {
+        action: 'add',
+        date: document.getElementById('inpDate').value,
+        time: document.getElementById('inpTime').value,
+        duration: selectedDuration,
+        type: selectedType,
+        price: Number(document.getElementById('inpPrice').value) || 0,
+        note: document.getElementById('inpNote').value.trim()
+      };
+
+      const btn = document.getElementById('submitBtn');
+      btn.disabled = true;
+      btn.textContent = 'Сохраняем...';
+
+      try {
+        const res = await postAction(payload);
+        if (res.ok) {
+          bookings = res.bookings || [];
+          selectedDate = payload.date;
+          modal.classList.remove('open');
+          document.getElementById('inpPrice').value = '';
+          document.getElementById('inpNote').value = '';
+          renderAll();
+          showToast('Запись сохранена');
+        } else {
+          showToast(res.error || 'Ошибка сохранения');
+        }
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Сохранить запись';
+      }
+    });
+
+    setInterval(updateCountdown, 1000);
+    loadBookings();
+  </script>
+</body>
+</html>
